@@ -1,12 +1,11 @@
-import { Button } from "@/components/ui/button"
-import TaskList from "./components/TaskList"
+import { ThemeProvider } from "@/components/theme-provider"
+import NavBar from "./components/NavBar"
 
 function App() {
   return (
-    <div className="flex flex-col items-center justify-center min-h-svh">
-      <Button>Click me</Button>
-      <TaskList />
-    </div>
+    <ThemeProvider defaultTheme="dark" storageKey="vite-ui-theme">
+      <NavBar />
+    </ThemeProvider>
   )
 }
 
