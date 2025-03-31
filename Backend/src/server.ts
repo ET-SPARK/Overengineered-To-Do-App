@@ -3,6 +3,8 @@ import cors from "cors";
 import dotenv from "dotenv";
 import pool from "./db";
 import collectionRoutes from "../src/routes/collections";
+import tasksRoutes from "../src/routes/tasks";
+import subtasksRoutes from "../src/routes/subtasks";
 
 dotenv.config();
 
@@ -25,6 +27,8 @@ app.get("/", (req, res) => {
 });
 
 app.use("/collections", collectionRoutes);
+app.use("/tasks", tasksRoutes);
+app.use("/subtasks", subtasksRoutes);
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
