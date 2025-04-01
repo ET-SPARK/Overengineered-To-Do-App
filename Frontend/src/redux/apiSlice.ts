@@ -13,8 +13,34 @@ export const apiSlice = createApi({
     getCollections: builder.query({
       query: () => "/collections",
     }),
+    addTask: builder.mutation({
+      query: (newTask) => ({
+        url: "/tasks",
+        method: "POST",
+        body: newTask,
+      }),
+    }),
+    updateTask: builder.mutation({
+      query: ({ id, updatedTask }) => ({
+        url: `/tasks/${id}`,
+        method: "PUT",
+        body: updatedTask,
+      }),
+    }),
+    deleteTask: builder.mutation({
+      query: (id) => ({
+        url: `/tasks/${id}`,
+        method: "DELETE",
+      }),
+    }),
   }),
 });
 
-export const { useGetTasksQuery, useGetSubtasksQuery, useGetCollectionsQuery } =
-  apiSlice;
+export const {
+  useGetTasksQuery,
+  useGetSubtasksQuery,
+  useGetCollectionsQuery,
+  useAddTaskMutation,
+  useUpdateTaskMutation,
+  useDeleteTaskMutation,
+} = apiSlice;
