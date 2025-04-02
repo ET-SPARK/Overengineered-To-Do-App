@@ -8,7 +8,7 @@ import {
     useAddTaskMutation
 } from "@/redux/apiSlice.ts";
 import NavBar from "./NavBar";
-import { Plus, Trash2, Edit3, FolderDown, Calendar as CalendarIcon } from "lucide-react";
+import { Plus, Trash2, Edit3, FolderDown, Calendar as CalendarIcon, Terminal } from "lucide-react";
 import { Checkbox } from "./ui/checkbox";
 import { Input } from "./ui/input";
 import { Button } from "./ui/button";
@@ -26,6 +26,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { format } from "date-fns";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 const CollectionDetail: React.FC = () => {
     const { id } = useParams();
@@ -39,13 +40,25 @@ const CollectionDetail: React.FC = () => {
     // Local state for tasks
     const [tasks, setTasks] = useState<any[]>([]);
     const [editingTaskId, setEditingTaskId] = useState<number | null>(null);
-    const [taskEdits, setTaskEdits] = useState<{ [key: number]: { title: string, completed: boolean } }>({});
+    const [taskEdits, setTaskEdits] = useState<{ [key: number]: { title: string, completed: boolean, date?: Date } }>({});
 
     // State for add task dialog
     const [taskTitle, setTaskTitle] = useState<string>("");
     const [date, setDate] = useState<Date>();
     const [isDialogOpen, setIsDialogOpen] = useState<boolean>(false);
     const [errorMessage, setErrorMessage] = useState<string | null>(null);
+    const [successMessage, setSuccessMessage] = useState<string | null>(null);
+
+    // Clear messages after timeout
+    useEffect(() => {
+        if (successMessage || errorMessage) {
+            const timer = setTimeout(() => {
+                setSuccessMessage(null);
+                setErrorMessage(null);
+            }, 3000);
+            return () => clearTimeout(timer);
+        }
+    }, [successMessage, errorMessage]);
 
     useEffect(() => {
         if (tasksData) {
@@ -64,15 +77,36 @@ const CollectionDetail: React.FC = () => {
         if (!updatedTask) return;
 
         try {
-            await updateTask({ id: taskId, updatedTask }).unwrap();
+            // Include all necessary fields in the update payload
+            const taskToUpdate = tasks.find(task => task.task_id === taskId);
+            if (!taskToUpdate) return;
+
+            const updatePayload = {
+                id: taskId,
+                updatedTask: {
+                    title: updatedTask.title,
+                    completed: updatedTask.completed,
+                    date: updatedTask.date || taskToUpdate.date,
+                    collection_id: taskToUpdate.collection_id
+                }
+            };
+
+            await updateTask(updatePayload).unwrap();
             setTasks(prevTasks =>
                 prevTasks.map(task =>
-                    task.task_id === taskId ? { ...task, ...updatedTask } : task
+                    task.task_id === taskId ? {
+                        ...task,
+                        title: updatedTask.title,
+                        completed: updatedTask.completed,
+                        date: updatedTask.date || task.date
+                    } : task
                 )
             );
             setEditingTaskId(null);
+            setSuccessMessage("Task updated successfully!");
         } catch (error) {
             console.error('Failed to update task:', error);
+            setErrorMessage("Failed to update task. Please try again.");
         }
     };
 
@@ -90,6 +124,7 @@ const CollectionDetail: React.FC = () => {
                     id: taskId,
                     updatedTask: { ...taskToUpdate, completed: !taskToUpdate.completed }
                 }).unwrap();
+                setSuccessMessage("Task status updated!");
             } catch (error) {
                 console.error('Failed to update task:', error);
                 setTasks(prevTasks =>
@@ -97,6 +132,7 @@ const CollectionDetail: React.FC = () => {
                         task.task_id === taskId ? { ...task, completed: taskToUpdate.completed } : task
                     )
                 );
+                setErrorMessage("Failed to update task status.");
             }
         }
     };
@@ -129,6 +165,7 @@ const CollectionDetail: React.FC = () => {
             setDate(undefined);
             setErrorMessage(null);
             setIsDialogOpen(false);
+            setSuccessMessage("Task added successfully!");
         } catch (error) {
             console.error('Failed to add task:', error);
             setErrorMessage("Failed to add task. Please try again.");
@@ -139,8 +176,10 @@ const CollectionDetail: React.FC = () => {
         try {
             await deleteTask(taskId).unwrap();
             setTasks(prevTasks => prevTasks.filter(task => task.task_id !== taskId));
+            setSuccessMessage("Task deleted successfully!");
         } catch (error) {
             console.error('Failed to delete task:', error);
+            setErrorMessage("Failed to delete task. Please try again.");
         }
     };
 
@@ -154,80 +193,105 @@ const CollectionDetail: React.FC = () => {
         <>
             <NavBar />
             <div className="w-full lg:px-[360px] px-4">
+                {/* Success Alert */}
+                {successMessage && (
+                    <div className="fixed bottom-4 right-4 text-green-700 p-4 rounded-md shadow-lg w-[300px]">
+                        <Alert>
+                            <Terminal className="h-4 w-4" />
+                            <AlertTitle>Success!</AlertTitle>
+                            <AlertDescription>{successMessage}</AlertDescription>
+                        </Alert>
+                    </div>
+                )}
+
+                {/* Error Alert */}
+                {errorMessage && (
+                    <div className="fixed bottom-4 right-4 text-red-700 p-4 rounded-md shadow-lg w-[300px]">
+                        <Alert>
+                            <Terminal className="h-4 w-4" />
+                            <AlertTitle>Error</AlertTitle>
+                            <AlertDescription>{errorMessage}</AlertDescription>
+                        </Alert>
+                    </div>
+                )}
+
+
                 <div className='text-start lg:text-4xl text-xl lg:my-10 my-4'>{collectionName}</div>
 
                 {/* Add Task Dialog */}
-                <AlertDialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-                    <AlertDialogTrigger asChild>
-                        <Card className='w-full h-[200px] border-dotted rounded-2xl p-4 flex flex-col justify-center items-center bg-background cursor-pointer lg:my-10 my-4'>
-                            <Plus className="w-5 h-5" />
-                            <span className="mt-2">Add a Task</span>
-                        </Card>
-                    </AlertDialogTrigger>
-                    <AlertDialogContent>
-                        <AlertDialogHeader>
-                            <Input
-                                type="text"
-                                placeholder="Enter task title"
-                                value={taskTitle}
-                                onChange={(e) => {
-                                    setTaskTitle(e.target.value);
+                <div className="">
+                    <AlertDialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+                        <AlertDialogTrigger asChild>
+                            <Card className='w-full h-[200px] border-dotted rounded-2xl p-4 flex flex-col justify-center items-center bg-background cursor-pointer lg:my-10 my-4'>
+                                <Plus className="w-5 h-5" />
+                                <span className="mt-2">Add a Task</span>
+                            </Card>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                            <AlertDialogHeader>
+                                <Input
+                                    type="text"
+                                    placeholder="Enter task title"
+                                    value={taskTitle}
+                                    onChange={(e) => {
+                                        setTaskTitle(e.target.value);
+                                        setErrorMessage(null);
+                                    }}
+                                    autoFocus
+                                    className={errorMessage && !taskTitle.trim() ? "border-red-500" : ""}
+                                />
+
+                                <div className="mt-4">
+                                    <Popover>
+                                        <PopoverTrigger asChild>
+                                            <Button
+                                                variant={"outline"}
+                                                className={cn(
+                                                    "w-full justify-start text-left font-normal",
+                                                    !date && "text-muted-foreground",
+                                                    errorMessage && !date ? "border-red-500" : ""
+                                                )}
+                                            >
+                                                <CalendarIcon className="mr-2 h-4 w-4" />
+                                                {date ? format(date, "PPP") : <span>Pick a date</span>}
+                                            </Button>
+                                        </PopoverTrigger>
+                                        <PopoverContent className="w-auto p-0">
+                                            <Calendar
+                                                mode="single"
+                                                selected={date}
+                                                onSelect={(selectedDate) => {
+                                                    setDate(selectedDate);
+                                                    setErrorMessage(null);
+                                                }}
+                                                initialFocus
+                                            />
+                                        </PopoverContent>
+                                    </Popover>
+                                </div>
+
+                                {errorMessage && (
+                                    <div className="text-red-500 text-sm mt-2">{errorMessage}</div>
+                                )}
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                                <AlertDialogCancel onClick={() => {
                                     setErrorMessage(null);
-                                }}
-                                autoFocus
-                                className={errorMessage && !taskTitle.trim() ? "border-red-500" : ""}
-                            />
-
-                            <div className="mt-4">
-                                <Popover>
-                                    <PopoverTrigger asChild>
-                                        <Button
-                                            variant={"outline"}
-                                            className={cn(
-                                                "w-full justify-start text-left font-normal",
-                                                !date && "text-muted-foreground",
-                                                errorMessage && !date ? "border-red-500" : ""
-                                            )}
-                                        >
-                                            <CalendarIcon className="mr-2 h-4 w-4" />
-                                            {date ? format(date, "PPP") : <span>Pick a date</span>}
-                                        </Button>
-                                    </PopoverTrigger>
-                                    <PopoverContent className="w-auto p-0">
-                                        <Calendar
-                                            mode="single"
-                                            selected={date}
-                                            onSelect={(selectedDate) => {
-                                                setDate(selectedDate);
-                                                setErrorMessage(null);
-                                            }}
-                                            initialFocus
-                                        />
-                                    </PopoverContent>
-                                </Popover>
-                            </div>
-
-                            {errorMessage && (
-                                <div className="text-red-500 text-sm mt-2">{errorMessage}</div>
-                            )}
-                        </AlertDialogHeader>
-                        <AlertDialogFooter>
-                            <AlertDialogCancel onClick={() => {
-                                setErrorMessage(null);
-                                setTaskTitle("");
-                                setDate(undefined);
-                            }}>
-                                Cancel
-                            </AlertDialogCancel>
-                            <AlertDialogAction
-                                disabled={!isFormValid}
-                                onClick={handleAddTask}
-                            >
-                                Add Task
-                            </AlertDialogAction>
-                        </AlertDialogFooter>
-                    </AlertDialogContent>
-                </AlertDialog>
+                                    setTaskTitle("");
+                                    setDate(undefined);
+                                }}>
+                                    Cancel
+                                </AlertDialogCancel>
+                                <AlertDialogAction
+                                    disabled={!isFormValid}
+                                    onClick={handleAddTask}
+                                >
+                                    Add Task
+                                </AlertDialogAction>
+                            </AlertDialogFooter>
+                        </AlertDialogContent>
+                    </AlertDialog>
+                </div>
 
                 {tasks.length === 0 ? (
                     <p>No tasks found for this collection.</p>
@@ -245,60 +309,71 @@ const CollectionDetail: React.FC = () => {
                                     <div className="text-lg font-bold">{status} Tasks</div>
                                     <ul className="space-y-4">
                                         {filteredTasks.map(task => (
-                                            <li key={task.task_id} className="p-4 border rounded-lg shadow flex justify-between items-center">
-                                                <div className="flex items-center gap-x-2">
-                                                    <Checkbox
-                                                        id={`task-${task.task_id}`}
-                                                        checked={task.completed}
-                                                        onCheckedChange={() => handleCheckboxChange(task.task_id)}
-                                                    />
-                                                    {editingTaskId === task.task_id ? (
-                                                        <Input
-                                                            value={taskEdits[task.task_id]?.title || task.title}
-                                                            onChange={(e) =>
-                                                                setTaskEdits({
-                                                                    ...taskEdits,
-                                                                    [task.task_id]: {
-                                                                        title: e.target.value,
-                                                                        completed: taskEdits[task.task_id]?.completed ?? task.completed
-                                                                    }
-                                                                })
-                                                            }
+                                            <li key={task.task_id} className="p-4 border rounded-lg shadow">
+                                                <div className="flex justify-between items-center">
+                                                    <div className="flex items-center gap-x-2">
+                                                        <Checkbox
+                                                            id={`task-${task.task_id}`}
+                                                            checked={task.completed}
+                                                            onCheckedChange={() => handleCheckboxChange(task.task_id)}
                                                         />
+                                                        {editingTaskId === task.task_id ? (
+                                                            <Input
+                                                                value={taskEdits[task.task_id]?.title || task.title}
+                                                                onChange={(e) =>
+                                                                    setTaskEdits({
+                                                                        ...taskEdits,
+                                                                        [task.task_id]: {
+                                                                            title: e.target.value,
+                                                                            completed: taskEdits[task.task_id]?.completed ?? task.completed,
+                                                                            date: taskEdits[task.task_id]?.date ?? task.date
+                                                                        }
+                                                                    })
+                                                                }
+                                                            />
+                                                        ) : (
+                                                            <label
+                                                                htmlFor={`task-${task.task_id}`}
+                                                                className={`text-sm font-medium ${task.completed ? "line-through text-gray-500" : ""}`}
+                                                            >
+                                                                {task.title}
+                                                            </label>
+                                                        )}
+                                                    </div>
+
+                                                    {editingTaskId === task.task_id ? (
+                                                        <Button onClick={() => handleUpdateTask(task.task_id)}>Save</Button>
                                                     ) : (
-                                                        <label
-                                                            htmlFor={`task-${task.task_id}`}
-                                                            className={`text-sm font-medium ${task.completed ? "line-through text-gray-500" : ""}`}
-                                                        >
-                                                            {task.title}
-                                                        </label>
+                                                        <div className="flex gap-x-2">
+                                                            <Edit3
+                                                                className="cursor-pointer"
+                                                                onClick={() => {
+                                                                    setEditingTaskId(task.task_id);
+                                                                    setTaskEdits({
+                                                                        ...taskEdits,
+                                                                        [task.task_id]: {
+                                                                            title: task.title,
+                                                                            completed: task.completed,
+                                                                            date: task.date
+                                                                        }
+                                                                    });
+                                                                }}
+                                                            />
+                                                            <Trash2
+                                                                className="cursor-pointer"
+                                                                onClick={() => handleDeleteTask(task.task_id)}
+                                                            />
+                                                            <FolderDown
+                                                                className="cursor-pointer"
+                                                                onClick={() => handleNavigation(task.task_id)}
+                                                            />
+                                                        </div>
                                                     )}
                                                 </div>
-
-                                                {editingTaskId === task.task_id ? (
-                                                    <Button onClick={() => handleUpdateTask(task.task_id)}>Save</Button>
-                                                ) : (
-                                                    <div className="flex gap-x-2">
-                                                        <Edit3
-                                                            className="cursor-pointer"
-                                                            onClick={() => {
-                                                                setEditingTaskId(task.task_id);
-                                                                setTaskEdits({
-                                                                    ...taskEdits,
-                                                                    [task.task_id]: { title: task.title, completed: task.completed }
-                                                                });
-                                                            }}
-                                                        />
-                                                        <Trash2
-                                                            className="cursor-pointer"
-                                                            onClick={() => handleDeleteTask(task.task_id)}
-                                                        />
-                                                        <FolderDown
-                                                            className="cursor-pointer"
-                                                            onClick={() => handleNavigation(task.task_id)}
-                                                        />
-                                                    </div>
-                                                )}
+                                                {/* Date display */}
+                                                <div className="mt-2 text-sm text-gray-500">
+                                                    {task.date && format(new Date(task.date), "MMM dd, yyyy")}
+                                                </div>
                                             </li>
                                         ))}
                                     </ul>
