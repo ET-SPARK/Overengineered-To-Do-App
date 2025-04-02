@@ -1,12 +1,16 @@
 import { ThemeProvider } from "@/components/theme-provider"
-import NavBar from "./components/NavBar"
 import Collections from "./components/Collections"
+import { Routes, Route } from "react-router-dom";
+import CollectionDetail from "./components/CollectionDetail";
 
 function App() {
   return (
     <ThemeProvider defaultTheme="dark" storageKey="vite-ui-theme">
-      <NavBar />
-      <Collections />
+
+      <Routes>
+        <Route path="/" element={<Collections />} />
+        <Route path="/collection/:id" element={<CollectionDetail />} />
+      </Routes>
     </ThemeProvider>
   )
 }

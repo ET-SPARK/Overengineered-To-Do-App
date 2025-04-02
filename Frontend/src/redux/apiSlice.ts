@@ -33,6 +33,26 @@ export const apiSlice = createApi({
         method: "DELETE",
       }),
     }),
+    addSubtask: builder.mutation({
+      query: (newSubtask) => ({
+        url: "/subtasks",
+        method: "POST",
+        body: newSubtask,
+      }),
+    }),
+    updateSubtask: builder.mutation({
+      query: ({ subtask_id, updatedSubtask }) => ({
+        url: `/subtasks/${subtask_id}`,
+        method: "PUT",
+        body: updatedSubtask,
+      }),
+    }),
+    deleteSubtask: builder.mutation({
+      query: (subtask_id) => ({
+        url: `/subtasks/${subtask_id}`,
+        method: "DELETE",
+      }),
+    }),
   }),
 });
 
@@ -43,4 +63,7 @@ export const {
   useAddTaskMutation,
   useUpdateTaskMutation,
   useDeleteTaskMutation,
+  useAddSubtaskMutation,
+  useUpdateSubtaskMutation,
+  useDeleteSubtaskMutation,
 } = apiSlice;
