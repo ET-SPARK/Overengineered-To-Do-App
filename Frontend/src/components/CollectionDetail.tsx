@@ -7,10 +7,12 @@ import {
     useDeleteTaskMutation
 } from "@/redux/apiSlice.ts";
 import NavBar from "./NavBar";
-import { Plus, Trash2, Edit3 } from "lucide-react";
+import { Plus, Trash2, Edit3, FolderDown } from "lucide-react";
 import { Checkbox } from "./ui/checkbox";
 import { Input } from "./ui/input";
 import { Button } from "./ui/button";
+import { useNavigate } from "react-router-dom";
+
 
 const CollectionDetail: React.FC = () => {
     const { id } = useParams();
@@ -18,6 +20,7 @@ const CollectionDetail: React.FC = () => {
     const { data: collections } = useGetCollectionsQuery();
     const [updateTask] = useUpdateTaskMutation();
     const [deleteTask] = useDeleteTaskMutation();
+    const navigate = useNavigate();
 
     // Local state for tasks to update UI immediately
     const [tasks, setTasks] = useState<any[]>([]);
@@ -74,6 +77,10 @@ const CollectionDetail: React.FC = () => {
         // Remove from local state immediately
         setTasks(prevTasks => prevTasks.filter(task => task.task_id !== taskId));
     };
+
+    const handleNavigation = async (taskId: number) => {
+        navigate(`/subtask/${taskId}`);
+    }
 
     return (
         <>
@@ -148,6 +155,10 @@ const CollectionDetail: React.FC = () => {
                                                         <Trash2
                                                             className="cursor-pointer"
                                                             onClick={() => handleDeleteTask(task.task_id)}
+                                                        />
+                                                        <FolderDown
+                                                            className="cursor-pointer"
+                                                            onClick={() => handleNavigation(task.task_id)}
                                                         />
                                                     </div>
                                                 )}

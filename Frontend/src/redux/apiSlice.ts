@@ -47,6 +47,7 @@ export const apiSlice = createApi({
         body: updatedSubtask,
       }),
     }),
+
     deleteSubtask: builder.mutation({
       query: (subtask_id) => ({
         url: `/subtasks/${subtask_id}`,

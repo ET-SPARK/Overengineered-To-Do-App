@@ -1,71 +1,130 @@
-import React, { useState } from "react";
-import { useAddSubtaskMutation, useUpdateSubtaskMutation, useDeleteSubtaskMutation } from "@/redux/apiSlice";
-import { Checkbox } from "./ui/checkbox";
-import { Input } from "./ui/input";
-import { Button } from "./ui/button";
-import { Trash2, Edit3 } from "lucide-react";
+import { useState, useEffect } from "react";
+import { useParams } from "react-router-dom";
+import {
+    useGetSubtasksQuery,
+    useAddSubtaskMutation,
+    useUpdateSubtaskMutation,
+    useDeleteSubtaskMutation
+} from "@/redux/apiSlice"; // Adjust the path as needed
+import { Checkbox } from "./ui/checkbox"; // Import the custom Checkbox component
 
-interface SubtaskProps {
-    task_id: number;
-    subtask: any; // Subtask type (modify according to your backend response)
-}
+const SubtaskForm = () => {
+    const { id } = useParams<{ id: string }>(); // Get taskId from URL params
+    const [title, setTitle] = useState("");
+    const [editId, setEditId] = useState<number | null>(null);
+    const [message, setMessage] = useState("");
 
-const Subtask: React.FC<SubtaskProps> = ({ task_id, subtask }) => {
-    const [subtaskEdits, setSubtaskEdits] = useState({ title: subtask.title, completed: subtask.completed });
-    const [editMode, setEditMode] = useState(false);
-    const [updateSubtask] = useUpdateSubtaskMutation();
+    // API Hooks
+    const { data: subtasks, isLoading: isFetching } = useGetSubtasksQuery(); // Fetch all subtasks
+    const [addSubtask, { isLoading: isAdding }] = useAddSubtaskMutation();
+    const [updateSubtask, { isLoading: isUpdating }] = useUpdateSubtaskMutation();
     const [deleteSubtask] = useDeleteSubtaskMutation();
 
-    // Handle updating the subtask
-    const handleUpdateSubtask = async () => {
-        await updateSubtask({ subtask_id: subtask.subtask_id, updatedSubtask: subtaskEdits });
-        setEditMode(false);
+    // Filter subtasks by taskId
+    const filteredSubtasks = subtasks?.filter((subtask: { task_id: number }) => subtask.task_id === parseInt(id, 10));
+
+    // Handle Submit (Create or Update)
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!id || !title) {
+            setMessage("Task ID and Title are required.");
+            return;
+        }
+
+        try {
+            if (editId) {
+                // Update existing subtask
+                await updateSubtask({ subtask_id: editId, updatedSubtask: { task_id: parseInt(id, 10), title } }).unwrap();
+                setMessage("Subtask updated successfully!");
+            } else {
+                // Add new subtask
+                await addSubtask({ task_id: parseInt(id, 10), title }).unwrap();
+                setMessage("Subtask added successfully!");
+            }
+
+            // Reset Form
+            setTitle("");
+            setEditId(null);
+        } catch (err) {
+            setMessage("Error processing request.");
+        }
     };
 
-    // Handle delete subtask
-    const handleDeleteSubtask = async () => {
-        await deleteSubtask(subtask.subtask_id);
+    // Handle Edit
+    const handleEdit = (subtask: { id: number; task_id: number; title: string }) => {
+        setEditId(subtask.id);
+        setTitle(subtask.title);
+    };
+
+    // Handle Delete
+    const handleDelete = async (subtask_id: number) => {
+        if (!subtask_id) { // Use subtask_id here
+            console.error("Subtask ID is missing or invalid");
+            return;
+        }
+        try {
+            await deleteSubtask(subtask_id).unwrap();
+            setMessage("Subtask deleted successfully!");
+        } catch (err) {
+            setMessage("Error deleting subtask.");
+        }
+    };
+
+    // Handle Completion Toggle
+    const handleCompletionToggle = async (subtaskId: number, currentStatus: boolean) => {
+        try {
+            // Toggle the completion status (checked or unchecked)
+            await updateSubtask({
+                subtask_id: subtaskId,
+                updatedSubtask: { completed: !currentStatus }
+            }).unwrap();
+            setMessage("Subtask status updated successfully!");
+        } catch (err) {
+            setMessage("Error updating subtask status.");
+        }
     };
 
     return (
-        <div className="p-2 border rounded-md flex justify-between items-center">
-            <div className="flex items-center gap-x-2">
-                <Checkbox
-                    id={`subtask-${subtask.subtask_id}`}
-                    checked={subtaskEdits.completed}
-                    onCheckedChange={() => setSubtaskEdits({ ...subtaskEdits, completed: !subtaskEdits.completed })}
+        <div>
+            <h2>{editId ? "Edit Subtask" : "Add Subtask"}</h2>
+            <form onSubmit={handleSubmit}>
+                <input
+                    type="text"
+                    placeholder="Enter Subtask Title"
+                    value={title}
+                    onChange={(e) => setTitle(e.target.value)}
                 />
-                {editMode ? (
-                    <Input
-                        value={subtaskEdits.title}
-                        onChange={(e) => setSubtaskEdits({ ...subtaskEdits, title: e.target.value })}
-                    />
-                ) : (
-                    <label
-                        htmlFor={`subtask-${subtask.subtask_id}`}
-                        className={`text-sm font-medium ${subtaskEdits.completed ? "line-through text-gray-500" : ""}`}
-                    >
-                        {subtask.title}
-                    </label>
+                <button type="submit" disabled={isAdding || isUpdating}>
+                    {isAdding || isUpdating ? "Processing..." : editId ? "Update Subtask" : "Add Subtask"}
+                </button>
+                {editId && (
+                    <button type="button" onClick={() => setEditId(null)}>
+                        Cancel Edit
+                    </button>
                 )}
-            </div>
+            </form>
+            {message && <p>{message}</p>}
 
-            {editMode ? (
-                <Button onClick={handleUpdateSubtask}>Save</Button>
+            <h2>Subtask List</h2>
+            {isFetching ? (
+                <p>Loading subtasks...</p>
             ) : (
-                <div className="flex gap-x-2">
-                    <Edit3
-                        className="cursor-pointer"
-                        onClick={() => setEditMode(true)}
-                    />
-                    <Trash2
-                        className="cursor-pointer"
-                        onClick={handleDeleteSubtask}
-                    />
-                </div>
+                <ul>
+                    {filteredSubtasks?.map((subtask: { id: number; task_id: number; title: string, completed: boolean }) => (
+                        <li key={subtask.id}>
+                            <strong>Task ID:</strong> {subtask.task_id}, <strong>Title:</strong> {subtask.title}
+                            <Checkbox
+                                checked={subtask.completed}
+                                onChange={() => handleCompletionToggle(subtask.id, subtask.completed)}
+                            />
+                            <button onClick={() => handleEdit(subtask)}>Edit</button>
+                            <button onClick={() => handleDelete(subtask.id)}>Delete</button>
+                        </li>
+                    ))}
+                </ul>
             )}
         </div>
     );
 };
 
-export default Subtask;
+export default SubtaskForm;
