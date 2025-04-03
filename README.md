@@ -25,10 +25,6 @@ Backend
 
 🗃 Database Schema
 Collections Table
-Column	      Type	        Description
-id	          INT	          Primary Key
-name	        STRING	      Collection name
-
 
 CREATE TABLE collections (
   id SERIAL PRIMARY KEY,
@@ -42,14 +38,7 @@ id        	name
 3          	Design
 4          	Groceries
 
-Tasks             Table
-
-Column	          Type	        Description
-task_id	          SERIAL	      Primary Key
-title	            VARCHAR(255)	Task title
-date	            TIMESTAMP	    Task creation date
-completed	        BOOLEAN	      Task completion status
-collection_id    	INT	          Foreign Key (linked to Collections)
+Tasks Table
 
 CREATE TABLE tasks (
   task_id SERIAL PRIMARY KEY,
@@ -60,14 +49,7 @@ CREATE TABLE tasks (
   FOREIGN KEY (collection_id) REFERENCES collections(collection_id) ON DELETE CASCADE
 );
 
-Sub-tasks             Table
-
-Column	              Type	        Description
-subtask_id	          SERIAL	      Primary Key
-title	                VARCHAR(255)	Task title
-date	                TIMESTAMP	    Task creation date
-completed	            BOOLEAN	      Task completion status
-task_id              	INT	          Foreign Key (linked to tasks)
+Sub-tasks Table
 
 CREATE TABLE subtasks (
   subtask_id SERIAL PRIMARY KEY,
