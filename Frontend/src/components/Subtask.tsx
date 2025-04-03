@@ -25,6 +25,12 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { cn } from "@/lib/utils";
 import { Calendar } from "@/components/ui/calendar";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import {
+    HoverCard,
+    HoverCardContent,
+    HoverCardTrigger,
+} from "@/components/ui/hover-card"
+
 
 const Subtask: React.FC = () => {
     const { id } = useParams();
@@ -317,24 +323,40 @@ const Subtask: React.FC = () => {
                                                     <Button onClick={() => handleUpdateSubtask(subtask.subtask_id)}>Save</Button>
                                                 ) : (
                                                     <div className="flex gap-x-2">
-                                                        <Edit3
-                                                            className="cursor-pointer"
-                                                            onClick={() => {
-                                                                setEditingSubtaskId(subtask.subtask_id);
-                                                                setSubtaskEdits({
-                                                                    ...subtaskEdits,
-                                                                    [subtask.subtask_id]: {
-                                                                        title: subtask.title,
-                                                                        completed: subtask.completed,
-                                                                        date: subtask.date
-                                                                    }
-                                                                });
-                                                            }}
-                                                        />
-                                                        <Trash2
-                                                            className="cursor-pointer"
-                                                            onClick={() => handleDeleteSubtask(subtask.subtask_id)}
-                                                        />
+                                                        <HoverCard>
+                                                            <HoverCardTrigger>
+                                                                <Edit3
+                                                                    className="cursor-pointer"
+                                                                    onClick={() => {
+                                                                        setEditingSubtaskId(subtask.subtask_id);
+                                                                        setSubtaskEdits({
+                                                                            ...subtaskEdits,
+                                                                            [subtask.subtask_id]: {
+                                                                                title: subtask.title,
+                                                                                completed: subtask.completed,
+                                                                                date: subtask.date
+                                                                            }
+                                                                        });
+                                                                    }}
+                                                                />
+                                                            </HoverCardTrigger>
+                                                            <HoverCardContent className="w-auto h-[50px] text-center flex items-center">
+                                                                Edit
+                                                            </HoverCardContent>
+                                                        </HoverCard>
+
+                                                        <HoverCard>
+                                                            <HoverCardTrigger>
+                                                                <Trash2
+                                                                    className="cursor-pointer"
+                                                                    onClick={() => handleDeleteSubtask(subtask.subtask_id)}
+                                                                />
+                                                            </HoverCardTrigger>
+                                                            <HoverCardContent className="w-auto h-[50px] text-center flex items-center">
+                                                                Delete
+                                                            </HoverCardContent>
+                                                        </HoverCard>
+
                                                     </div>
                                                 )}
                                             </div>

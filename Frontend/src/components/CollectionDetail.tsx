@@ -27,6 +27,12 @@ import { format } from "date-fns";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import {
+    HoverCard,
+    HoverCardContent,
+    HoverCardTrigger,
+} from "@/components/ui/hover-card"
+
 
 const CollectionDetail: React.FC = () => {
     const { id } = useParams();
@@ -345,28 +351,51 @@ const CollectionDetail: React.FC = () => {
                                                         <Button onClick={() => handleUpdateTask(task.task_id)}>Save</Button>
                                                     ) : (
                                                         <div className="flex gap-x-2">
-                                                            <Edit3
-                                                                className="cursor-pointer"
-                                                                onClick={() => {
-                                                                    setEditingTaskId(task.task_id);
-                                                                    setTaskEdits({
-                                                                        ...taskEdits,
-                                                                        [task.task_id]: {
-                                                                            title: task.title,
-                                                                            completed: task.completed,
-                                                                            date: task.date
-                                                                        }
-                                                                    });
-                                                                }}
-                                                            />
-                                                            <Trash2
-                                                                className="cursor-pointer"
-                                                                onClick={() => handleDeleteTask(task.task_id)}
-                                                            />
-                                                            <FolderDown
-                                                                className="cursor-pointer"
-                                                                onClick={() => handleNavigation(task.task_id)}
-                                                            />
+                                                            <HoverCard>
+                                                                <HoverCardTrigger> <Edit3
+                                                                    className="cursor-pointer"
+                                                                    onClick={() => {
+                                                                        setEditingTaskId(task.task_id);
+                                                                        setTaskEdits({
+                                                                            ...taskEdits,
+                                                                            [task.task_id]: {
+                                                                                title: task.title,
+                                                                                completed: task.completed,
+                                                                                date: task.date
+                                                                            }
+                                                                        });
+                                                                    }}
+                                                                /></HoverCardTrigger>
+                                                                <HoverCardContent className="w-auto h-[50px] text-center flex items-center">
+                                                                    Edit
+                                                                </HoverCardContent>
+                                                            </HoverCard>
+
+                                                            <HoverCard>
+                                                                <HoverCardTrigger>
+                                                                    <Trash2
+                                                                        className="cursor-pointer"
+                                                                        onClick={() => handleDeleteTask(task.task_id)}
+                                                                    />
+                                                                </HoverCardTrigger>
+                                                                <HoverCardContent className="w-auto h-[50px] text-center flex items-center">
+                                                                    Delete
+                                                                </HoverCardContent>
+                                                            </HoverCard>
+
+
+                                                            <HoverCard>
+                                                                <HoverCardTrigger>
+                                                                    <FolderDown
+                                                                        className="cursor-pointer"
+                                                                        onClick={() => handleNavigation(task.task_id)}
+                                                                    />
+                                                                </HoverCardTrigger>
+                                                                <HoverCardContent className="w-auto h-[50px] text-center flex items-center">
+                                                                    Subtask
+                                                                </HoverCardContent>
+                                                            </HoverCard>
+
                                                         </div>
                                                     )}
                                                 </div>
